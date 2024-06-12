@@ -127,8 +127,12 @@ const start = async () => {
         return socket.in(room).emit("stop typing", { room, userId });
       });
 
-      socket.off("setup", () => {
+      socket.on("disconnect", () => {
         console.log("USER DISCONNECTED");
+      });
+      
+      socket.off("setup", () => {
+        console.log(`USER ${userId} DISCONNECTED`);
         socket.leave(userId);
       });
     });
