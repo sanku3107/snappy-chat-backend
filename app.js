@@ -98,7 +98,7 @@ const start = async () => {
 
     io.on("connection", (socket) => {
       console.log("connection established");
-
+      // console.log("id:", socket.id);
       socket.on("setup", (userId) => {
         socket.join(userId);
         socket.emit("connected");
@@ -106,6 +106,7 @@ const start = async () => {
 
       socket.on("join chat", (room) => {
         socket.join(room);
+        // console.log("User Connected Room: ", room);
       });
 
       socket.on("new message", (newMessageReceived) => {
@@ -117,6 +118,54 @@ const start = async () => {
         });
       });
 
+      // socket.on('getOrCreateNotifications', async (userId) => {
+      //   // Mock request and response objects
+      //   const req = { user: { _id: userId }, body: {} };
+      //   const res = {
+      //     status: (code) => ({
+      //       json: (data) => socket.emit('notificationsData', data),
+      //     }),
+      //   };
+    
+      //   try {
+      //     await getOrCreateNotifications(req, res);
+      //   } catch (error) {
+      //     console.error('Error getting or creating notifications:', error);
+      //   }
+      // });
+
+      // socket.on('addNotification', async (userId, messages) => {
+      //   // Mock request and response objects
+      //   const req = { user: { _id: userId }, body: { messages: JSON.stringify(messages) } };
+      //   const res = {
+      //     status: (code) => ({
+      //       json: (data) => socket.emit('notificationsData', data),
+      //     }),
+      //   };
+    
+      //   try {
+      //     await addNotification(req, res);
+      //   } catch (error) {
+      //     console.error('Error adding notification:', error);
+      //   }
+      // });
+
+      // socket.on('removeNotification', async (userId, messages) => {
+      //   // Mock request and response objects
+      //   const req = { user: { _id: userId }, body: { messages: JSON.stringify(messages) } };
+      //   const res = {
+      //     status: (code) => ({
+      //       json: (data) => socket.emit('notificationsData', data),
+      //     }),
+      //   };
+    
+      //   try {
+      //     await removeNotification(req, res);
+      //   } catch (error) {
+      //     console.error('Error removing notification:', error);
+      //   }
+      // });
+
       socket.on("typing", ({ room, userId }) => {
         // console.log(room, userId, "start");
         return socket.in(room).emit("typing", { room, userId });
@@ -127,12 +176,8 @@ const start = async () => {
         return socket.in(room).emit("stop typing", { room, userId });
       });
 
-      socket.on("disconnect", () => {
-        console.log("USER DISCONNECTED");
-      });
-      
-      socket.off("setup", () => {
-        console.log(`USER ${userId} DISCONNECTED`);
+      socket.off("setup", (socket) => {
+        console.log(`USER DISCONNECTED ${socket.id}`);
         socket.leave(userId);
       });
     });

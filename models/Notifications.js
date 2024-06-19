@@ -19,3 +19,4 @@ export const Notifications = mongoose.model(
   "Notifications",
   notificationsSchema
 );
+
