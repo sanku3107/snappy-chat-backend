@@ -19,6 +19,8 @@ import {
   sendForgotPasswordOtpViaSms,
   reSendForgotPasswordOtpViaSms,
   verifyForgotPasswordOtpAfterLogin,
+  sendForgotPasswordOtpForNotVerifiedEmail,
+  reSendForgotPasswordOtpForNotVerifiedEmail,
 } from "../controllers/user.js";
 import authenticateUser from "../middlewares/authentication.js";
 const router = express.Router();
@@ -47,6 +49,11 @@ router.get(
 // {reset password using OTP via email}
 router.post("/password/reset/email/send", sendForgotPasswordOtp);
 router.post("/password/reset/email/resend", reSendForgotPasswordOtp);
+
+// {for forgot password page}
+router.post("/password/reset/email/nverify/send", sendForgotPasswordOtpForNotVerifiedEmail);
+router.post("/password/reset/email/nverify/resend", reSendForgotPasswordOtpForNotVerifiedEmail);
+
 //------------------------------------------------------------------------------------
 router.post("/password/reset/verify/beforeLogin", verifyForgotPasswordOtpBeforeLogin);
 //------------------------------------------------------------------------------------

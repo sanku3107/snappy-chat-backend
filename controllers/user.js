@@ -489,6 +489,73 @@ const sendForgotPasswordOtp = async (req, res) => {
   }
 };
 
+const sendForgotPasswordOtpForNotVerifiedEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    // console.log("Received request to send OTP to email:", email);
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // console.log(`User with email ${email} doesn't exist`);
+      throw new NotFoundError(`User with email ${email} doesn't exist`);
+    }
+
+    const data = {
+      _userId: user._id,
+      token: Math.floor(100000 + Math.random() * 900000),
+    };
+
+    // console.log("Removing old OTP if it exists for user ID:", user._id);
+    await OTP.findOneAndRemove({ _userId: user._id });
+
+    // console.log("Creating new OTP for user ID:", user._id);
+    const otp = await OTP.create(data);
+    if (!otp) {
+      // console.log("Failed to create OTP for user ID:", user._id);
+      throw new Error(`Unable to generate OTP. Please try again later!`);
+    }
+
+    const date = new Date(
+      new Date(otp.expireAt).getTime() + 7200000
+    ).toLocaleDateString();
+    const time = new Date(
+      new Date(otp.expireAt).getTime() + 7200000
+    ).toLocaleTimeString();
+
+    const mailOptions = {
+      from: process.env.ADMIN_EMAIL,
+      to: user.email,
+      subject: "Forgot Password",
+      html: `<h2>Hello ${user.name}</h2>
+          <p>Here is your (ONE TIME PASSWORD)OTP to change your forgotten password:</p>
+          <span style="margin:0 10px 0 10px" >👉🏼</span><b style="letter-spacing: 2px;">${otp.token}</b><span style="margin:0 10px 0 10px" >👈🏼</span>
+          <br>
+          <p>This token will be expired on <b>${date}</b> at <b>${time}</b></p>
+          `,
+    };
+
+    // console.log("Sending email to:", user.email);
+    mailTransporter.sendMail(mailOptions, (err, data) => {
+      if (err) {
+        // console.log("Error sending email:", err.message);
+        res.status(500).json({ text: err.message });
+      } else {
+        res.status(200).json({
+          text: `One time password has been sent Successfully!. Please Check Your Spam Folder and If you not get otp then click on resend otp.`,
+          expireAt: {
+            date,
+            time,
+          },
+          email,
+        });
+      }
+    });
+  } catch (error) {
+    // console.error("Error in sendForgotPasswordOtp:", error);
+    res.status(500).json({ msg: { text: error.message } });
+  }
+};
+
 const reSendForgotPasswordOtp = async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
@@ -541,6 +608,55 @@ const reSendForgotPasswordOtp = async (req, res) => {
   });
 };
 
+const reSendForgotPasswordOtpForNotVerifiedEmail = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) throw new NotFoundError(`User with email ${email} doesn't exist`);
+
+  const data = {
+    _userId: user._id,
+    token: Math.floor(100000 + Math.random() * 900000),
+  };
+
+  var otp = await OTP.findOne({ _userId: user._id });
+  if (!otp) otp = await OTP.create(data);
+  if (!otp) throw new Error(`Unable to generate OTP.Please try again later!`);
+  const date = new Date(
+    new Date(otp.expireAt).getTime() + 7200000
+  ).toLocaleDateString();
+  const time = new Date(
+    new Date(otp.expireAt).getTime() + 7200000
+  ).toLocaleTimeString();
+
+  const mailOptions = {
+    from: process.env.ADMIN_EMAIL,
+    to: user.email,
+    subject: "Forgot Password",
+    html: `<h2>Hello ${user.name}</h2>
+        <p>Here is your (ONE TIME PASSWORD)OTP to change your forgotten password:</p>
+        <span style="margin:0 10px 0 10px" >👉🏼</span><b style="letter-spacing: 2px;">${otp.token}</b><span style="margin:0 10px 0 10px" >👈🏼</span>
+        <br>
+        <p>This token will be expired on <b>${date}</b> at <b>${time}</b></p>
+        `,
+  };
+
+  mailTransporter.sendMail(mailOptions, (err, data) => {
+    if (err) {
+      res.status(500).json({ text: err.message });
+    } else {
+      res.status(200).json({
+        text: `One time password has been sent Successfully!. Please Check Your Spam Folder and If you not get otp then click on resend otp.`,
+        expireAt: {
+          date,
+          time,
+        },
+        email,
+      });
+    }
+  });
+};
+
+
 const verifyForgotPasswordOtpBeforeLogin = async (req, res) => {
   const { token, email, password } = req.body;
   if (!token) throw new BadRequestError("Please Provide token");
@@ -549,10 +665,10 @@ const verifyForgotPasswordOtpBeforeLogin = async (req, res) => {
 
   var user = await User.findOne({ email });
   if (!user) throw new NotFoundError(`User with email ${email} doesn't exist`);
-  if (!user.isVerifiedEmail)
-    throw new ForbiddenRequestError(
-      `User isn't verified yet. To change your forgotten password, please verify your email first!`
-    );
+  // if (!user.isVerifiedEmail)
+  //   throw new ForbiddenRequestError(
+  //     `User isn't verified yet. To change your forgotten password, please verify your email first!`
+  //   );
   const otp = await OTP.findOne({
     token,
     _userId: user._id,
@@ -894,6 +1010,8 @@ export {
   sendForgotPasswordOtpViaSms, //added
   verifyForgotPasswordOtpAfterLogin, //added
   reSendForgotPasswordOtpViaSms, //added
+  sendForgotPasswordOtpForNotVerifiedEmail,
+  reSendForgotPasswordOtpForNotVerifiedEmail,
   updateAvatar,
   updateName,
   updateEmail,
